@@ -17,10 +17,12 @@ void showDialogDetalhesManutencao(BuildContext context, Manutencao manutencao) {
           const SizedBox(height: 8),
 
           // Correção aqui: usando o formatador para parsear
-          Text('Data: ${formatador.format(formatador.parse(manutencao.data))}'),
+          Text(
+            'Data prevista: ${formatador.format(formatador.parse(manutencao.data))}',
+          ),
 
           const SizedBox(height: 8),
-          Text('KM: ${manutencao.km}'),
+          Text('KM Previsto: ${manutencao.km}'),
 
           if (manutencao.local?.isNotEmpty ?? false) ...[
             const SizedBox(height: 8),
