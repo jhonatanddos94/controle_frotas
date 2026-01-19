@@ -1,0 +1,55 @@
+name: controle_frota
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite_common_ffi: ^2.3.0
+  path: ^1.8.0
+  intl: ^0.20.2
+  cupertino_icons: ^1.0.8
+  window_size: ^0.1.0
+  file_selector: ^1.0.3
+  file_selector_windows: ^0.9.3+4
+  pdf: ^3.10.4
+  printing: ^5.11.0
+  lottie: ^2.7.0
+  excel: ^2.0.4
+
+
+  # ✅ Suporte à localização (pt_BR)
+  flutter_localizations:
+    sdk: flutter
+  path_provider: ^2.1.5
+  csv: ^6.0.0
+  file_picker: ^10.2.0
+  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  assets:
+    - assets/warning.png
+    - assets/alert.png
+    - assets/prazo.png
+    - assets/logo.png
+    - assets/list.png
+    - assets/manutencao.png
+    - assets/hodometro.png
+    - assets/police.png
+    - assets/atraso.png
+    - assets/config.png
+    - assets/lottie/loading.json
+    - assets/lottie/database.json
+    - assets/lottie/success.json
+    - assets/fonts/Roboto-Regular.ttf
+    - assets/fonts/Roboto-Bold.ttf
+  uses-material-design: true
