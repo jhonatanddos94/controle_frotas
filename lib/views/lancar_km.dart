@@ -1,12 +1,17 @@
 import 'dart:async';
+
+import 'package:controle_frota/dialogs/dialog_impressao_ficha_km.dart';
 import 'package:controle_frota/dialogs/mostrar_dialog_animado.dart';
 import 'package:controle_frota/utils/exportar_km_csv.dart';
 import 'package:controle_frota/utils/importar_km_csv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:printing/printing.dart';
+
 import '../models/viatura_model.dart';
 import '../db/database_helper.dart';
+import '../utils/gerar_ficha_km_pdf.dart';
 
 class LancarKmPage extends StatefulWidget {
   const LancarKmPage({super.key});
@@ -23,6 +28,7 @@ class _LancarKmPageState extends State<LancarKmPage> {
 
   // Estado
   List<Viatura> _viaturas = [];
+
   // Controllers e validação para TODA a lista (não só a página)
   final Map<int, TextEditingController> _kmControllers = {};
   final Map<int, bool> _validKm = {};
@@ -112,8 +118,6 @@ class _LancarKmPageState extends State<LancarKmPage> {
           text: v.kmAtual.toString(),
         );
         _kmOriginal[v.id!] = v.kmAtual;
-      } else {
-        // se trocar filtro e já tinha controller, mantém o que o usuário digitou
       }
       _validKm[v.id!] = _ehKmValidoPara(v, _kmControllers[v.id!]!.text);
     }
@@ -361,7 +365,7 @@ class _LancarKmPageState extends State<LancarKmPage> {
       tempoAutoFechamento: const Duration(seconds: 3),
     );
 
-    // 👇 força atualização de todos os campos com os novos valores do banco
+    // força atualização de todos os campos com os novos valores do banco
     setState(() {
       _kmControllers.clear();
       _validKm.clear();
@@ -370,6 +374,22 @@ class _LancarKmPageState extends State<LancarKmPage> {
     });
 
     await _carregarViaturas();
+  }
+
+  Future<void> _gerarFichaKmPdf() async {
+    if (_viaturas.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhuma viatura para gerar a ficha.')),
+      );
+      return;
+    }
+
+    final bytes = await GerarFichaKmPdf.gerar(
+      viaturas: _viaturas, // usa a lista filtrada atual
+      titulo: 'FICHA DE ATUALIZAÇÃO DE KM - VIATURAS',
+    );
+
+    await Printing.layoutPdf(onLayout: (_) async => bytes);
   }
 
   @override
@@ -452,7 +472,7 @@ class _LancarKmPageState extends State<LancarKmPage> {
             ),
             const SizedBox(height: 16),
 
-            // Ações CSV
+            // Ações
             Row(
               children: [
                 ElevatedButton.icon(
@@ -466,8 +486,19 @@ class _LancarKmPageState extends State<LancarKmPage> {
                   icon: const Icon(Icons.upload),
                   label: const Text('Importar Planilha'),
                 ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) =>
+                          DialogImpressaoFichaKm(viaturas: _viaturas),
+                    );
+                  },
+                  icon: const Icon(Icons.picture_as_pdf),
+                  label: const Text('Gerar Ficha (PDF)'),
+                ),
                 const Spacer(),
-                // Info de quantos registros
                 if (_viaturas.isNotEmpty)
                   Text(
                     'Exibindo ${paginaViaturas.length} de ${_viaturas.length}',
@@ -509,13 +540,8 @@ class _LancarKmPageState extends State<LancarKmPage> {
                         final v = paginaViaturas[index];
                         final c = _kmControllers[v.id]!;
                         final valido = _validKm[v.id] ?? true;
-                        final atualizadoHoje =
-                            (v is Viatura) &&
-                            (v.id != null) &&
-                            false; // placeholder (não temos o campo carregado aqui)
 
-                        // Badge "Hoje" via ultimaAtualizacaoKm comparando com hoje
-                        // Como não está no modelo, vamos usar a abordagem com uma consulta simples no texto do controller:
+                        // "Hoje" aqui é só visual (se o texto é igual ao original salvo)
                         final jaAtualizadoHoje =
                             _kmOriginal[v.id!] != null &&
                             _kmOriginal[v.id!] == int.tryParse(c.text);

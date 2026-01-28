@@ -67,7 +67,6 @@ class _ListManutencoesPageState extends State<ListManutencoesPage> {
       _manutencoes = results.map((e) => Manutencao.fromMap(e)).toList();
     });
 
-    // Depois que renderizar, rola até a destacada e aplica o “flash”
     if (_destacadaId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _irParaDestacada());
     }
@@ -83,7 +82,7 @@ class _ListManutencoesPageState extends State<ListManutencoesPage> {
       Scrollable.ensureVisible(
         ctx,
         duration: const Duration(milliseconds: 500),
-        alignment: 0.15, // deixa um respiro acima do item
+        alignment: 0.15,
         curve: Curves.easeOutCubic,
       );
       setState(() => _destacadaPulsando = true);
@@ -121,6 +120,78 @@ class _ListManutencoesPageState extends State<ListManutencoesPage> {
     }
   }
 
+  // ✅ NOVO: permitir adicionar info após encerramento
+  Future<void> _adicionarInfoPosConclusao(Manutencao m) async {
+    final controller = TextEditingController();
+
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Adicionar informação'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Essa informação será anexada na observação da manutenção (concluída).',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Informação adicional',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A2B7B),
+            ),
+            child: const Text('Salvar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmado != true) return;
+
+    final texto = controller.text.trim();
+    if (texto.isEmpty) return;
+
+    final agora = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now());
+    final bloco = '[ADICIONADO EM - $agora] $texto';
+
+    final atual = (m.observacao ?? '').trim();
+    final novo = atual.isEmpty ? bloco : '$atual\n$bloco';
+
+    final db = await DatabaseHelper.getDatabase();
+
+    // ✅ Isso grava no BD na tabela "manutencoes", campo "observacao"
+    await db.update(
+      'manutencoes',
+      {'observacao': novo},
+      where: 'id = ?',
+      whereArgs: [m.id],
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Informação adicionada com sucesso!')),
+    );
+
+    _carregarManutencoes();
+  }
+
   List<Manutencao> get _manutencoesFiltradas {
     if (_statusFiltro == 'Todas') return _manutencoes;
     return _manutencoes
@@ -151,7 +222,6 @@ class _ListManutencoesPageState extends State<ListManutencoesPage> {
             HeaderViatura(viatura: widget.viatura),
             const SizedBox(height: 12),
 
-            // Botão rápido para focar a manutenção destacada (se houver)
             if (_destacadaId != null)
               Align(
                 alignment: Alignment.centerLeft,
@@ -191,7 +261,6 @@ class _ListManutencoesPageState extends State<ListManutencoesPage> {
                       itemBuilder: (_, index) {
                         final m = _manutencoesFiltradas[index];
 
-                        // chave única por item para permitir o ensureVisible
                         final key = _itemKeys.putIfAbsent(
                           m.id!,
                           () => GlobalKey(),
@@ -207,7 +276,7 @@ class _ListManutencoesPageState extends State<ListManutencoesPage> {
                             borderRadius: BorderRadius.circular(12),
                             border: isDestacada && _destacadaPulsando
                                 ? Border.all(
-                                    color: const Color(0xFFFFB020), // âmbar
+                                    color: const Color(0xFFFFB020),
                                     width: 2,
                                   )
                                 : null,
@@ -236,34 +305,51 @@ class _ListManutencoesPageState extends State<ListManutencoesPage> {
                               leading: const Icon(Icons.build_circle),
                               title: Text(m.descricao),
                               subtitle: Text(
-                                'Data: ${_formatarData(m.data)}    KM: ${m.km}',
+                                'Data de Previsão: ${_formatarData(m.data)}    KM de Previsão: ${m.km}',
                               ),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  // ✅ ALTERADO: concluída agora tem "adicionar info" + imprimir
                                   m.status == 'Concluída'
-                                      ? TextButton(
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    HistoricoManutencaoPage(
-                                                      manutencao: m,
-                                                    ),
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              tooltip: 'Adicionar informação',
+                                              icon: const Icon(
+                                                Icons.note_add_outlined,
+                                                size: 22,
                                               ),
-                                            );
-                                          },
-                                          style: TextButton.styleFrom(
-                                            padding: const EdgeInsets.all(8),
-                                            foregroundColor:
-                                                Colors.blue.shade700,
-                                          ),
-                                          child: Icon(
-                                            Icons.print,
-                                            color: Colors.blue.shade700,
-                                            size: 28,
-                                          ),
+                                              onPressed: () =>
+                                                  _adicionarInfoPosConclusao(m),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        HistoricoManutencaoPage(
+                                                          manutencao: m,
+                                                        ),
+                                                  ),
+                                                );
+                                              },
+                                              style: TextButton.styleFrom(
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                                foregroundColor:
+                                                    Colors.blue.shade700,
+                                              ),
+                                              child: Icon(
+                                                Icons.print,
+                                                color: Colors.blue.shade700,
+                                                size: 28,
+                                              ),
+                                            ),
+                                          ],
                                         )
                                       : PopupMenuButton<String>(
                                           tooltip:

@@ -423,22 +423,7 @@ class _CadastroManutencaoPageState extends State<CadastroManutencaoPage> {
                                               ),
                                             ),
                                           ),
-                                          IconButton(
-                                            icon: const Icon(
-                                              Icons.close,
-                                              size: 18,
-                                              color: Colors.grey,
-                                            ),
-                                            onPressed: () {
-                                              setState(() {
-                                                _viaturaSelecionada = null;
-                                                _buscaController.clear();
-                                              });
-                                            },
-                                            tooltip: 'Limpar seleção',
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                          ),
+
                                           Tooltip(
                                             message: 'Visualizar manutenções',
                                             child: InkWell(
@@ -457,12 +442,37 @@ class _CadastroManutencaoPageState extends State<CadastroManutencaoPage> {
                                                   );
                                                 }
                                               },
-                                              child: const Icon(
-                                                Icons.arrow_forward_ios,
-                                                size: 16,
-                                                color: Colors.grey,
+                                              child: const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 6,
+                                                ),
+                                                child: Icon(
+                                                  Icons.visibility_outlined,
+                                                  size: 18,
+                                                  color: Colors.grey,
+                                                ),
                                               ),
                                             ),
+                                          ),
+                                          const SizedBox(
+                                            width: 8,
+                                          ), // espaço entre olho e X
+                                          // ✕ Depois: limpar
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.close,
+                                              size: 18,
+                                              color: Colors.grey,
+                                            ),
+                                            onPressed: () {
+                                              setState(() {
+                                                _viaturaSelecionada = null;
+                                                _buscaController.clear();
+                                              });
+                                            },
+                                            tooltip: 'Limpar seleção',
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
                                           ),
                                         ],
                                       ),
